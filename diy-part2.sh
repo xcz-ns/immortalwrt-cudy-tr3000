@@ -13,7 +13,7 @@ rm -rf feeds/luci/themes/luci-theme-argon
 rm -rf feeds/luci/themes/luci-theme-design
 
 # 自定义内容
-ZZZ="package/lean/default-settings/files/zzz-default-settings"
+ZZZ="package/emortal/default-settings/files/99-default-settings"
 cat >> "$ZZZ" <<EOF
 uci set system.@system[0].hostname='CudyTR3000'
 uci set luci.main.mediaurlbase=/luci-static/argon
@@ -21,11 +21,8 @@ uci set network.lan.ipaddr='192.168.10.1'
 uci commit
 sed -i "s#^root:[^:]*:#root:\$5\$7ceNgrs8ZgrGVxv8\$UFWOtsaXR3KC2k0PeXFff.z47etH3dJZcpBv9zDpE08:#" /etc/shadow
 EOF
-
-# 确保默认设置脚本正确收尾
 sed -i '/exit 0/d' "$ZZZ"
 echo "exit 0" >> "$ZZZ"
-
 
 # 下载并配置 lucky 二进制文件
 BASE="https://release.66666.host"
@@ -59,5 +56,4 @@ CONFIG_PACKAGE_luci-app-wireguard=y
 CONFIG_PACKAGE_luci-app-uhttpd=y
 CONFIG_PACKAGE_luci-app-upnp=y
 EOF
-# 移除行首多余缩进与空格
 sed -i 's/^[ \t]*//g' ./.config

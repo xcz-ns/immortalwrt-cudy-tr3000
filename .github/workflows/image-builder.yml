@@ -137,13 +137,13 @@ jobs:
           chmod +x $DIY_P2_SH
           cd openwrt
           $GITHUB_WORKSPACE/$DIY_P2_SH
-          cat .config
 
       - name: ⬇️ 下载依赖包 - 提前下载编译所需的所有源码包
         id: package
         run: |
           cd openwrt
           make defconfig
+          grep -vE '^#|^$' .config
           make download -j8
           find dl -size -1024c -exec ls -l {} \;
           find dl -size -1024c -exec rm -f {} \;
