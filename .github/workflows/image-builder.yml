@@ -106,6 +106,14 @@ jobs:
           git clone $REPO_URL -b $REPO_BRANCH openwrt
           ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
 
+      - name: 🧬 生成工具链哈希 - 用于区分缓存 Key
+        working-directory: /workdir/openwrt
+        run: |
+          TOOLCHAIN_HASH=$(git log --pretty=tformat:'%h' -n1 tools toolchain || echo none)
+          echo "当前工具链哈希: $TOOLCHAIN_HASH"
+          echo "$TOOLCHAIN_HASH" > .toolchain.hash
+          cat .toolchain.hash
+
       - name: ⚡ 编译缓存加速 - 恢复与保存工具链及编译缓存
         uses: xcz-ns/cachewrtbuild@main
         with:
@@ -152,6 +160,7 @@ jobs:
         id: compile
         run: |
           cd openwrt
+          du -h --max-depth=1 | sort -h
           echo -e "$(nproc) thread compile"
           make -j$(nproc) || make -j1 || make -j1 V=s
           grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > DEVICE_NAME
