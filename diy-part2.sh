@@ -45,6 +45,8 @@ ls -lh "$DIR/lucky"
 # 自定义插件内容
 touch ./.config
 cat >> .config <<EOF
+CONFIG_DEVEL=y
+CONFIG_CCACHE=y
 CONFIG_TARGET_ROOTFS_TARGZ=y
 CONFIG_TARGET_ROOTFS_EXT4FS=y
 # --- Web 界面与美化 ---
