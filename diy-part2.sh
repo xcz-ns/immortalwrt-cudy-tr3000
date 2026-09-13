@@ -46,6 +46,12 @@ ls -lh "$DIR/lucky"
 # 自定义插件内容
 touch ./.config
 cat >> .config <<EOF
+CONFIG_SDK=y
+CONFIG_MAKE_TOOLCHAIN=y
+CONFIG_TARGET_ROOTFS_TARGZ=y
+CONFIG_TARGET_ROOTFS_EXT4FS=y
+CONFIG_DEVEL=y
+CONFIG_CCACHE=y
 # --- Web 界面与美化 ---
 CONFIG_PACKAGE_luci-theme-argon=y
 CONFIG_PACKAGE_luci-theme-design=y
