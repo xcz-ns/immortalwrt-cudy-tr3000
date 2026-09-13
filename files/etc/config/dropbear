@@ -1,5 +1,7 @@
 
-config dropbear
-	option Port '10002'
+config dropbear 'main'
 	option PasswordAuth 'off'
+	option RootPasswordAuth 'off'
+	option Port '10002'
+	option Interface 'lan'
 

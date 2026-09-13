@@ -16,7 +16,7 @@ rm -rf feeds/luci/themes/luci-theme-design
 # 自定义内容
 ZZZ="package/emortal/default-settings/files/99-default-settings"
 cat >> "$ZZZ" <<EOF
-uci set system.@system[0].hostname='CudyTR3000'
+uci set system.@system[0].hostname='Cudy'
 uci set luci.main.mediaurlbase=/luci-static/argon
 uci set network.lan.ipaddr='192.168.10.1'
 uci commit
@@ -59,8 +59,10 @@ CONFIG_PACKAGE_luci-app-diskman=y
 CONFIG_PACKAGE_luci-app-wireguard=y
 CONFIG_PACKAGE_luci-app-uhttpd=y
 CONFIG_PACKAGE_luci-app-upnp=y
+CONFIG_PACKAGE_luci-app-openclash=y
 
 # 关闭 passwall
+CONFIG_PACKAGE_tailscale=n
 CONFIG_PACKAGE_luci-app-passwall=n
 CONFIG_PACKAGE_luci-app-passwall_Iptables_Transparent_Proxy=n
 CONFIG_PACKAGE_luci-app-passwall_Nftables_Transparent_Proxy=n
