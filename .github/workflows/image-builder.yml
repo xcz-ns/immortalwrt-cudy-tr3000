@@ -241,6 +241,22 @@ jobs:
           grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > DEVICE_NAME
           [ -s DEVICE_NAME ] && echo "DEVICE_NAME=$(cat DEVICE_NAME)" >> $GITHUB_ENV || echo "DEVICE_NAME=unknown" >> $GITHUB_ENV
           echo "FILE_DATE=$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
+          
+          echo "============================================="
+          echo "📊 编译完成，开始读取 ccache 缓存统计信息"
+          echo "============================================="
+          export CCACHE_DIR=$GITHUB_WORKSPACE/openwrt/.ccache
+          ccache -s
+          CACHE_RATE=$(ccache -s | grep "cache hit rate" | awk '{print $4}')
+          echo ""
+          echo "🔥 当前本次编译综合缓存命中率：${CACHE_RATE}"
+          echo "---------------------------------------------"
+          echo "ℹ️ 说明："
+          echo "✅ cache hit：缓存命中，无需真实编译，直接复用目标文件"
+          echo "❌ cache miss：缓存未命中，需要完整执行源码编译"
+          echo "📈 cache hit rate：综合缓存命中率，越高编译速度越快"
+          echo "💡 若命中率偏低，可检查 toolchain、feeds、config 是否发生变更"
+          echo "============================================="
 
       - name: 💾 检查空间占用 - 打印当前系统磁盘使用情况
         if: (!cancelled())
