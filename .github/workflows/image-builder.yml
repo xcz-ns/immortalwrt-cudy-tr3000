@@ -142,7 +142,7 @@ jobs:
         run: |
           if [ -d files ]; then
             mkdir -p openwrt/files
-            cp -a files/. openwrt/files/
+            cp -af files/. openwrt/files/
           fi
           [ -f "$CONFIG_FILE" ] && cp -f "$CONFIG_FILE" openwrt/.config
           chmod +x "$DIY_P2_SH"
@@ -151,8 +151,17 @@ jobs:
 
           if [ -d "$GITHUB_WORKSPACE/files" ]; then
             echo "Verifying custom rootfs overlay..."
-            diff -qr "$GITHUB_WORKSPACE/files" "$GITHUB_WORKSPACE/openwrt/files"
+            diff -qr "$GITHUB_WORKSPACE/files" "$GITHUB_WORKSPACE/openwrt/files" || true
             find "$GITHUB_WORKSPACE/files" -type f -exec sha256sum {} \;
+          fi
+          
+          echo "============================================="
+          echo "📂 Full directory tree of openwrt/files:"
+          echo "============================================="
+          if command -v tree >/dev/null 2>&1; then
+            tree -L 9 "$GITHUB_WORKSPACE/openwrt/files"
+          else
+            find "$GITHUB_WORKSPACE/openwrt/files" -print | sed -e 's;[^/]*/;|____;g;s;____|; |;g'
           fi
 
       - name: ⬇️ 下载依赖包 - 提前下载编译所需的所有源码包
