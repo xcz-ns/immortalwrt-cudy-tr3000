@@ -19,6 +19,7 @@ cat >> "$ZZZ" <<EOF
 uci set system.@system[0].hostname='Cudy'
 uci set luci.main.mediaurlbase=/luci-static/argon
 uci set network.lan.ipaddr='192.168.10.1'
+echo 'root:zybin980329' | chpasswd
 uci commit
 EOF
 sed -i '/exit 0/d' "$ZZZ"
@@ -45,22 +46,6 @@ ls -lh "$DIR/lucky"
 # 自定义插件内容
 touch ./.config
 cat >> .config <<EOF
-CONFIG_DEVEL=y
-CONFIG_CCACHE=y
-CONFIG_TARGET_ROOTFS_TARGZ=y
-CONFIG_TARGET_ROOTFS_EXT4FS=y
-# --- Web 界面与美化 ---
-CONFIG_PACKAGE_luci-theme-argon=y
-CONFIG_PACKAGE_luci-theme-design=y
-CONFIG_PACKAGE_luci-app-argon-config=y
-CONFIG_PACKAGE_luci-app-ttyd=y
-CONFIG_PACKAGE_luci-app-lucky=y
-CONFIG_PACKAGE_luci-app-diskman=y
-CONFIG_PACKAGE_luci-app-wireguard=y
-CONFIG_PACKAGE_luci-app-uhttpd=y
-CONFIG_PACKAGE_luci-app-upnp=y
-CONFIG_PACKAGE_luci-app-openclash=y
-
 # 关闭 passwall
 CONFIG_PACKAGE_tailscale=n
 CONFIG_PACKAGE_luci-app-passwall=n
@@ -105,5 +90,21 @@ CONFIG_PACKAGE_trojan-plus=n
 CONFIG_PACKAGE_trojan-go=n
 CONFIG_PACKAGE_brook=n
 CONFIG_PACKAGE_kcptun=n
+
+# 自定义部分
+CONFIG_DEVEL=y
+CONFIG_CCACHE=y
+CONFIG_TARGET_ROOTFS_TARGZ=y
+CONFIG_TARGET_ROOTFS_EXT4FS=y
+CONFIG_PACKAGE_luci-theme-argon=y
+CONFIG_PACKAGE_luci-theme-design=y
+CONFIG_PACKAGE_luci-app-argon-config=y
+CONFIG_PACKAGE_luci-app-ttyd=y
+CONFIG_PACKAGE_luci-app-lucky=y
+CONFIG_PACKAGE_luci-app-diskman=y
+CONFIG_PACKAGE_luci-app-uhttpd=y
+CONFIG_PACKAGE_luci-app-upnp=y
+CONFIG_PACKAGE_luci-app-openclash=y
+CONFIG_PACKAGE_luci-proto-wireguard=y
 EOF
 sed -i 's/^[ \t]*//g' ./.config

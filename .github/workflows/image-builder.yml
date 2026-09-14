@@ -140,11 +140,20 @@ jobs:
 
       - name: ⚙️ 加载自定义配置 - 应用 config 选项并执行脚本二
         run: |
-          [ -e files ] && mv files openwrt/files
-          [ -e $CONFIG_FILE ] && mv $CONFIG_FILE openwrt/.config
-          chmod +x $DIY_P2_SH
+          if [ -d files ]; then
+            mkdir -p openwrt/files
+            cp -a files/. openwrt/files/
+          fi
+          [ -f "$CONFIG_FILE" ] && cp -f "$CONFIG_FILE" openwrt/.config
+          chmod +x "$DIY_P2_SH"
           cd openwrt
-          $GITHUB_WORKSPACE/$DIY_P2_SH
+          "$GITHUB_WORKSPACE/$DIY_P2_SH"
+
+          if [ -d "$GITHUB_WORKSPACE/files" ]; then
+            echo "Verifying custom rootfs overlay..."
+            diff -qr "$GITHUB_WORKSPACE/files" "$GITHUB_WORKSPACE/openwrt/files"
+            find "$GITHUB_WORKSPACE/files" -type f -exec sha256sum {} \;
+          fi
 
       - name: ⬇️ 下载依赖包 - 提前下载编译所需的所有源码包
         id: package
@@ -216,20 +225,67 @@ jobs:
           name: OpenWrt_firmware_${{ env.DEVICE_NAME }}_${{ env.FILE_DATE }}
           path: ${{ env.FIRMWARE }}
 
-      - name: 🔖 生成发布标签 - 创建 Release 节点信息与版本徽章
+      - name: 🔖 生成 Release 说明 - 汇总已启用的 LuCI 应用与主题
         id: tag
         if: steps.compile.conclusion == 'success' && env.UPLOAD_RELEASE == 'true' && !cancelled()
         run: |
           echo "release_tag=$(date +"%Y.%m.%d-%H%M")" >> $GITHUB_OUTPUT
-          touch "${RELEASE_FILE}"
-          BADGE=$(mktemp)
-          cat > "$BADGE" << EOF
-          [![Build Time](https://img.shields.io/badge/build-$(date +"%Y--%m--%d_%H:%M")-brightgreen?logo=github)](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) \
-          ![Device](https://img.shields.io/badge/device-$(echo ${{ env.DEVICE_NAME }} | sed 's/-/--/g')-blue) \
-          [![Source Repo](https://img.shields.io/badge/source-repo-orange?logo=github)](${REPO_URL}/tree/${REPO_BRANCH}) \
-          [![Commit](https://img.shields.io/badge/commit-$(git -C openwrt rev-parse --short HEAD)-yellow?logo=github)](${REPO_URL}/commit/$(git -C openwrt rev-parse HEAD))
-          EOF
-          grep -q "!\[Badge\]" "${RELEASE_FILE}" && sed -i "/!\[Badge\]/r ${BADGE}" "${RELEASE_FILE}" && sed -i "/!\[Badge\]/d" "${RELEASE_FILE}" || sed -i "1r ${BADGE}" "${RELEASE_FILE}"
+          cd openwrt
+
+          {
+            echo "# Cudy TR3000 ImmortalWrt 固件"
+            echo
+            echo "## 构建信息"
+            echo
+            echo "- **构建时间**：$(date +"%Y-%m-%d %H:%M %Z")"
+            echo "- **目标设备**：${DEVICE_NAME}"
+            echo "- **上游源码**：${REPO_URL}（分支：${REPO_BRANCH}）"
+            echo "- **上游提交**：$(git rev-parse HEAD)"
+            echo "- **工作流运行**：[查看构建日志](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+            echo
+            echo "## 已启用的 LuCI 应用与主题"
+            echo
+            echo "下表根据编译完成后的 \`.config\` 自动生成；“源码地址”是该包所在 Git 仓库的 \`origin\` 地址。"
+            echo
+            echo "| 软件包 | 类别 | 源码地址 | 源码版本 | 源码目录 |"
+            echo "| --- | --- | --- | --- | --- |"
+
+            mapfile -t luci_packages < <(grep -E '^CONFIG_PACKAGE_luci-(app|theme)-[A-Za-z0-9-]+=y$' .config | sed -E 's/^CONFIG_PACKAGE_(.*)=y$/\1/' | sort -u || true)
+
+            if [ "${#luci_packages[@]}" -eq 0 ]; then
+              echo "| 未检测到 | - | - | - | - |"
+            else
+              for package in "${luci_packages[@]}"; do
+                if [[ "$package" == luci-app-* ]]; then
+                  category="LuCI 应用"
+                else
+                  category="LuCI 主题"
+                fi
+
+                package_makefile=$(find feeds package -type f -path "*/${package}/Makefile" -print -quit)
+                if [ -n "$package_makefile" ]; then
+                  package_dir=$(dirname "$package_makefile")
+                  source_url=$(git -C "$package_dir" remote get-url origin 2>/dev/null || true)
+                  source_commit=$(git -C "$package_dir" rev-parse --short HEAD 2>/dev/null || true)
+                  if [ -n "$source_url" ]; then
+                    source_url=${source_url%.git}
+                    source_url=$(sed -E 's#^git@github\.com:#https://github.com/#' <<< "$source_url")
+                    source_url="[仓库](${source_url})"
+                  else
+                    source_url="随上游源码提供"
+                  fi
+                  [ -n "$source_commit" ] || source_commit="未知"
+                  source_dir=${package_dir#./}
+                else
+                  source_url="未定位到 Makefile"
+                  source_commit="-"
+                  source_dir="-"
+                fi
+
+                echo "| \`${package}\` | ${category} | ${source_url} | \`${source_commit}\` | \`${source_dir}\` |"
+              done
+            fi
+          } > "$GITHUB_WORKSPACE/$RELEASE_FILE"
 
       - name: 🎉 发布最终固件 - 将编译成果上传至 GitHub Releases
         uses: softprops/action-gh-release@master
