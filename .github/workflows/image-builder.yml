@@ -148,19 +148,54 @@ jobs:
           chmod +x "$DIY_P2_SH"
           cd openwrt
           "$GITHUB_WORKSPACE/$DIY_P2_SH"
-
           if [ -d "$GITHUB_WORKSPACE/files" ]; then
-            echo "Verifying custom rootfs overlay..."
+            echo "校验自定义根文件覆盖层..."
             diff -qr "$GITHUB_WORKSPACE/files" "$GITHUB_WORKSPACE/openwrt/files" || true
-            find "$GITHUB_WORKSPACE/files" -type f -exec sha256sum {} \;
+
+            echo "============================================="
+            echo "🔍 对比仓库 files 和 openwrt/files 文件一致性"
+            echo "============================================="
+            # 生成两个目录的【相对路径】+sha清单，只比对同名文件
+            TMP_SRC=$(mktemp)
+            TMP_DST=$(mktemp)
+            cd "$GITHUB_WORKSPACE/files"
+            find . -type f -print0 | xargs -0 sha256sum | awk '{print $2,$1}' > "$TMP_SRC"
+            cd "$GITHUB_WORKSPACE/openwrt/files"
+            find . -type f -print0 | xargs -0 sha256sum | awk '{print $2,$1}' > "$TMP_DST"
+
+            # 遍历源目录所有文件，在目标目录查找同名文件比对哈希
+            while read -r relpath shasrc; do
+              if grep -q "^$relpath " "$TMP_DST"; then
+                shadst=$(grep "^$relpath " "$TMP_DST" | cut -d' ' -f2)
+                if [ "$shasrc" = "$shadst" ]; then
+                  echo "[✅ 一致] $relpath"
+                else
+                  echo "[❌ 不一致] $relpath"
+                fi
+              else
+                echo "[⚠️ 目标不存在] $relpath"
+              fi
+            done < "$TMP_SRC"
+
+            # 找出目标目录独有文件（脚本生成的 lucky / banner 这类）
+            echo "---------------------------------------------"
+            echo "[➕ 目标目录新增文件（脚本生成）]"
+            while read -r relpath shadst; do
+              if ! grep -q "^$relpath " "$TMP_SRC"; then
+                echo "$relpath"
+              fi
+            done < "$TMP_DST"
+
+            rm -f "$TMP_SRC" "$TMP_DST"
           fi
           
           echo "============================================="
-          echo "📂 Full directory tree of openwrt/files:"
+          echo "📂 openwrt/files 完整目录结构"
           echo "============================================="
           if command -v tree >/dev/null 2>&1; then
             tree -L 9 "$GITHUB_WORKSPACE/openwrt/files"
           else
+            echo "⚠️ 当前环境没有 tree 命令，使用 find 模拟树形输出"
             find "$GITHUB_WORKSPACE/openwrt/files" -print | sed -e 's;[^/]*/;|____;g;s;____|; |;g'
           fi
 
